@@ -1,0 +1,31 @@
+{
+  "models": [
+    {
+      "id": "anima-turbo-q4_0", "role": "diffusion", "label": "Anima Turbo v1.1 Q4_0",
+      "file": "anima-turbo-v1.1-Q4_0.gguf",
+      "urls": ["https://huggingface.co/JoyFusionAI/gguf-anima/resolve/main/anima-turbo-v1.1-Q4_0.gguf"],
+      "sha256": "8e57a293c36788ea646460108e6f9c43d80e608f82f24fe1adf110dd2114c712", "size": 1235394688
+    },
+    {
+      "id": "anima-turbo-q8_0", "role": "diffusion", "label": "Anima Turbo v1.1 Q8_0",
+      "file": "anima-turbo-v1.1-Q8_0.gguf",
+      "urls": ["https://huggingface.co/JoyFusionAI/gguf-anima/resolve/main/anima-turbo-v1.1-Q8_0.gguf"],
+      "sha256": "74d6c9251f34bc4152fda460dd7befaa9cec79946c270a378fee3d33048153bd", "size": 2239471744
+    },
+    {
+      "id": "qwen3-0.6b-base-q8", "role": "text_encoder", "label": "Qwen3-0.6B-Base Q8_0",
+      "file": "Qwen3-0.6B-Base.Q8_0.gguf",
+      "urls": ["https://huggingface.co/JoyFusionAI/gguf-components/resolve/main/Qwen3-0.6B-Base.Q8_0.gguf"],
+      "sha256": "4b088f1793f6cba9f0c2f77ab835ef6734f205c2159168698c6e1a51b7df168a", "size": 639447232
+    },
+    {
+      "id": "qwen-image-vae", "role": "vae", "label": "Qwen-Image VAE",
+      "file": "ae.safetensors",
+      "urls": [
+        "https://huggingface.co/JoyFusionAI/gguf-components/resolve/main/ae.safetensors",
+        "https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors"
+      ],
+      "sha256": "a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f", "size": 253806246
+    }
+  ]
+}

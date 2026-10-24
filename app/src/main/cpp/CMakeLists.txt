@@ -1,0 +1,42 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(animabridge LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+set(SD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party/stable-diffusion.cpp)
+if(NOT EXISTS ${SD_DIR}/CMakeLists.txt)
+  message(FATAL_ERROR "stable-diffusion.cpp missing. Run: git submodule update --init --recursive")
+endif()
+
+set(SD_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(GGML_OPENMP OFF CACHE BOOL "" FORCE)
+set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
+# Dimensity 920: Cortex-A78 + A55 = ARMv8.2 with dotprod/fp16, no i8mm.
+set(GGML_CPU_ARM_ARCH "armv8.2-a+dotprod+fp16" CACHE STRING "" FORCE)
+
+if(ANIMA_VULKAN)
+  if(DEFINED ANDROID_NDK)
+    set(_ndk ${ANDROID_NDK})
+  else()
+    set(_ndk ${CMAKE_ANDROID_NDK})
+  endif()
+  set(SD_VULKAN ON CACHE BOOL "" FORCE)
+  set(GGML_VULKAN ON CACHE BOOL "" FORCE)
+  set(Vulkan_INCLUDE_DIR "${VK_HEADERS_DIR}/include" CACHE PATH "" FORCE)
+  set(Vulkan_LIBRARY "${_ndk}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/${ANDROID_PLATFORM_LEVEL}/libvulkan.so" CACHE FILEPATH "" FORCE)
+  set(Vulkan_GLSLC_EXECUTABLE "${_ndk}/shader-tools/linux-x86_64/glslc" CACHE FILEPATH "" FORCE)
+  set(GGML_VULKAN_SHADERS_GEN_TOOLCHAIN "${CMAKE_CURRENT_SOURCE_DIR}/host-toolchain.cmake" CACHE FILEPATH "" FORCE)
+endif()
+
+add_subdirectory(${SD_DIR} sd)
+
+add_library(animabridge SHARED bridge.cpp)
+target_include_directories(animabridge PRIVATE ${SD_DIR} ${SD_DIR}/include)
+target_link_libraries(animabridge PRIVATE stable-diffusion log android)
+if(ANIMA_VULKAN)
+  target_compile_definitions(animabridge PRIVATE ANIMA_VULKAN_BUILD=1)
+endif()

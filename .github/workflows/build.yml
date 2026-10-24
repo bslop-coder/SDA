@@ -1,0 +1,44 @@
+name: build
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  apk:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: cpu, vulkan: "false" }
+          - { name: vulkan, vulkan: "true" }
+    runs-on: ubuntu-24.04
+    # The Vulkan cross-build is the riskiest part; don't let it sink the CPU build.
+    continue-on-error: ${{ matrix.vulkan == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Android SDK pieces
+        run: |
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" "platforms;android-34" "ndk;27.0.12077973" "cmake;3.22.1"
+      - name: Vulkan headers
+        if: matrix.vulkan == 'true'
+        run: git clone --depth 1 --branch v1.3.296 https://github.com/KhronosGroup/Vulkan-Headers.git "$RUNNER_TEMP/vkh"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Build
+        run: gradle :app:assembleRelease -PanimaVulkan=${{ matrix.vulkan }} -PvkHeaders="$RUNNER_TEMP/vkh"
+      - name: Rename
+        run: mv app/build/outputs/apk/release/app-release.apk anima-${{ matrix.name }}.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anima-${{ matrix.name }}
+          path: anima-${{ matrix.name }}.apk
