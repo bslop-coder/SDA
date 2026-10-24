@@ -96,13 +96,13 @@ class EngineService : Service() {
             }
         }
         try {
-            send(Proto.LOG, data = msgText("engine: starting (offload mode ${req.offloadMode}, ${req.threads} threads, affinity 0x${req.affinityMask.toString(16)})"))
+            send(Proto.LOG, data = msgText("engine: starting (offload mode ${req.offloadMode}, ${req.threads} threads, affinity 0x${req.affinityMask.toString(16)}, backend '${req.backend.ifEmpty { "auto" }}')"))
             val rc = SdNative.generate(
                 req.diffusionPath, req.llmPath, req.vaePath,
                 req.prompt, req.negative, req.sampler,
                 req.width, req.height, req.steps, req.cfg, req.seed,
                 req.vaeTiling, req.flashAttn,
-                req.threads, req.affinityMask, req.offloadMode,
+                req.threads, req.affinityMask, req.offloadMode, req.backend,
                 req.loras.map { it.path }.toTypedArray(), req.loras.map { it.strength }.toFloatArray(),
                 listener,
             )

@@ -12,4 +12,4 @@ Rules that keep new features from breaking old ones:
 8. **Smoke test** (Settings -> Tools): 256x256, 1 step, seed 42, checks output is not blank. Run after every change.
 9. One feature per change; commit when it works.
 
-Offload modes (`offloadMode`): 0 keep all loaded; 1 free each stage's weights right after it runs (text encoder -> DiT -> VAE); 2 = 1 plus VAE on CPU (Vulkan build only). The log prints RSS/peak at stage boundaries so you can verify weights really get freed.
+Offload modes (`offloadMode`) map to sd.cpp's `params_backend`: 0 = sd.cpp default placement; 1 = every module's weights are reloaded from the model file on demand and released after use (`disk`); 2 = only the text encoder is reloaded on demand (`te=disk`), DiT and VAE stay resident. The `backend` setting (blank = auto) is passed straight through, e.g. `cpu`, `gpu`, `diffusion=gpu,te=cpu,vae=cpu`. The log prints RSS/peak at stage boundaries so you can verify weights really get freed.

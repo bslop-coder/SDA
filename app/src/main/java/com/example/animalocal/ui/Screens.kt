@@ -203,12 +203,17 @@ fun SettingsScreen(vm: MainViewModel, back: () -> Unit) {
         SwitchRow("Flash attention", s.flashAttn) { vm.updateSettings(s.copy(flashAttn = it)) }
 
         Text("Offload")
-        Chips(listOf(0, 1, 2), s.offloadMode, { listOf("Off", "Staged", "Staged + VAE on CPU")[it] }) { vm.updateSettings(s.copy(offloadMode = it)) }
+        Chips(listOf(0, 1, 2), s.offloadMode, { listOf("Off", "JIT: all stages", "JIT: text encoder only")[it] }) { vm.updateSettings(s.copy(offloadMode = it)) }
 
         SliderRow("CPU threads", s.threads.toFloat(), 1f..8f, 6, "${s.threads}") { vm.updateSettings(s.copy(threads = it.roundToInt())) }
         OutlinedTextField(
             value = s.affinityHex, onValueChange = { vm.updateSettings(s.copy(affinityHex = it.filter { c -> c.isLetterOrDigit() }.take(4))) },
             label = { Text("CPU affinity mask, hex (C0 = cpu6+7, empty/0 = none)") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+        )
+
+        OutlinedTextField(
+            value = s.backend, onValueChange = { vm.updateSettings(s.copy(backend = it.trim())) },
+            label = { Text("Backend override (blank = auto; cpu, gpu, diffusion=gpu,te=cpu,vae=cpu)") }, modifier = Modifier.fillMaxWidth(),
         )
 
         Text("LoRA", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 10.dp))

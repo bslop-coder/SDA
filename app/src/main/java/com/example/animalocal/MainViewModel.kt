@@ -86,7 +86,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             steps = if (smoke) 1 else s.steps, cfg = s.cfg,
             seed = if (smoke) 42 else if (s.seed < 0) Random.nextLong(0, 2_000_000_000L) else s.seed,
             vaeTiling = s.vaeTiling, flashAttn = s.flashAttn,
-            threads = s.threads, affinityMask = s.affinityMask(), offloadMode = s.offloadMode,
+            threads = s.threads, affinityMask = s.affinityMask(), offloadMode = s.offloadMode, backend = s.backend,
             loras = if (smoke) emptyList()
             else loras.filter { it.enabled && File(it.path).exists() }.map { LoraRef(it.path, it.strength) },
         )
@@ -250,17 +250,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 val dest = File(store.loraDir, name)
                 copyIn(uri, dest)
                 withContext(Dispatchers.Main) {
-                    setLoras(loras.filter { it.path != dest.path } + LoraEntry(name, dest.path))
+                    applyLoras(loras.filter { it.path != dest.path } + LoraEntry(name, dest.path))
                 }
             } catch (e: Exception) { addLog("LoRA import failed: ${e.message}") }
             withContext(Dispatchers.Main) { importing = null }
         }
     }
 
-    fun setLoras(list: List<LoraEntry>) { loras = list; prefs.saveLoras(list) }
-    fun updateLora(i: Int, l: LoraEntry) = setLoras(loras.toMutableList().also { it[i] = l })
+    fun applyLoras(list: List<LoraEntry>) { loras = list; prefs.saveLoras(list) }
+    fun updateLora(i: Int, l: LoraEntry) = applyLoras(loras.toMutableList().also { it[i] = l })
     fun removeLora(i: Int) {
         File(loras[i].path).delete()
-        setLoras(loras.toMutableList().also { it.removeAt(i) })
+        applyLoras(loras.toMutableList().also { it.removeAt(i) })
     }
 }

@@ -54,6 +54,12 @@ static std::string S(JNIEnv* env, jstring s) {
     return r;
 }
 
+// sd_image_generation_result_t::items has changed shape between sd.cpp versions.
+// Accept either an element that wraps an sd_image_t in a member called `image`, or a bare sd_image_t.
+template <typename T>
+static auto as_image(const T& r, int) -> decltype((const sd_image_t&)r.image) { return r.image; }
+static const sd_image_t& as_image(const sd_image_t& i, long) { return i; }
+
 extern "C" JNIEXPORT jint JNICALL
 Java_com_example_animalocal_engine_SdNative_generate(
         JNIEnv* env, jobject /*thiz*/,
@@ -61,7 +67,7 @@ Java_com_example_animalocal_engine_SdNative_generate(
         jstring jPrompt, jstring jNeg, jstring jSampler,
         jint width, jint height, jint steps, jfloat cfg, jlong seed,
         jboolean vaeTiling, jboolean flashAttn,
-        jint threads, jint affinityMask, jint offloadMode,
+        jint threads, jint affinityMask, jint offloadMode, jstring jBackend,
         jobjectArray jLoraPaths, jfloatArray jLoraStrengths,
         jobject listener) {
 
@@ -75,6 +81,7 @@ Java_com_example_animalocal_engine_SdNative_generate(
 
     std::string diff = S(env, jDiff), llm = S(env, jLlm), vae = S(env, jVae);
     std::string prompt = S(env, jPrompt), neg = S(env, jNeg), sampler = S(env, jSampler);
+    std::string backend = S(env, jBackend);
 
     // LoRAs: collect all strings first so c_str() pointers stay valid.
     std::vector<std::string> lpaths;
@@ -93,7 +100,7 @@ Java_com_example_animalocal_engine_SdNative_generate(
     std::vector<sd_lora_t> loras;
     for (size_t i = 0; i < lpaths.size(); i++) {
         sd_lora_t l = {};
-        l.is_directory = false;
+        l.is_high_noise = false;
         l.path = lpaths[i].c_str();
         l.multiplier = lstr[i];
         loras.push_back(l);
@@ -115,16 +122,13 @@ Java_com_example_animalocal_engine_SdNative_generate(
     cp.vae_path = vae.c_str();
     cp.n_threads = threads;
     cp.diffusion_flash_attn = flashAttn;
-    cp.vae_decode_only = true;
     cp.enable_mmap = true;
-    // offloadMode: 0 = keep everything loaded for the whole run,
-    //              1 = free each stage's weights right after it finishes (text encoder -> DiT -> VAE),
-    //              2 = like 1, and run the VAE on CPU.
-    cp.free_params_immediately = offloadMode >= 1;
-#ifdef ANIMA_VULKAN_BUILD
-    cp.offload_params_to_cpu = offloadMode >= 1;
-    cp.keep_vae_on_cpu = offloadMode >= 2;
-#endif
+    // backend: empty = sd.cpp default; otherwise e.g. "cpu", "gpu", "diffusion=gpu,te=cpu,vae=cpu".
+    cp.backend = backend.empty() ? nullptr : backend.c_str();
+    // offloadMode: 0 = sd.cpp default placement,
+    //              1 = every module's weights reloaded from the model file on demand and released after use,
+    //              2 = only the text encoder's weights are reloaded on demand (DiT and VAE stay resident).
+    cp.params_backend = (offloadMode == 1) ? "disk" : (offloadMode == 2) ? "te=disk" : nullptr;
 
     sd_ctx_t* ctx = new_sd_ctx(&cp);
     if (!ctx) {
@@ -146,21 +150,26 @@ Java_com_example_animalocal_engine_SdNative_generate(
         if (m != SAMPLE_METHOD_COUNT) ip.sample_params.sample_method = m;
         ip.vae_tiling_params.enabled = vaeTiling;
 
-        sd_image_t* imgs = generate_image(ctx, &ip);
-        if (!imgs || !imgs[0].data) {
+        sd_image_generation_result_t* res = nullptr;
+        bool ok = generate_image(ctx, &ip, &res);
+        if (!ok || !res || res->count < 1 || !res->items) {
             rc = 2;
         } else {
-            int w = (int)imgs[0].width, h = (int)imgs[0].height, ch = (int)imgs[0].channel;
-            std::vector<jbyte> buf((size_t)w * h * 3);
-            for (int i = 0; i < w * h; i++)
-                for (int c = 0; c < 3; c++) buf[(size_t)i * 3 + c] = (jbyte)imgs[0].data[(size_t)i * ch + c];
-            jbyteArray arr = env->NewByteArray((jsize)buf.size());
-            env->SetByteArrayRegion(arr, 0, (jsize)buf.size(), buf.data());
-            env->CallVoidMethod(listener, g_mImage, (jint)w, (jint)h, arr);
-            env->DeleteLocalRef(arr);
-            free(imgs[0].data);
+            const sd_image_t& im = as_image(res->items[0], 0);
+            if (!im.data) {
+                rc = 2;
+            } else {
+                int w = (int)im.width, h = (int)im.height, ch = (int)im.channel;
+                std::vector<jbyte> buf((size_t)w * h * 3);
+                for (int i = 0; i < w * h; i++)
+                    for (int c = 0; c < 3; c++) buf[(size_t)i * 3 + c] = (jbyte)im.data[(size_t)i * ch + c];
+                jbyteArray arr = env->NewByteArray((jsize)buf.size());
+                env->SetByteArrayRegion(arr, 0, (jsize)buf.size(), buf.data());
+                env->CallVoidMethod(listener, g_mImage, (jint)w, (jint)h, arr);
+                env->DeleteLocalRef(arr);
+            }
         }
-        free(imgs);
+        if (res) free_sd_image_generation_result(res);
         free_sd_ctx(ctx);
     }
 
