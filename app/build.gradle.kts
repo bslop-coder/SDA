@@ -52,10 +52,19 @@ android {
     }
     composeOptions { kotlinCompilerExtensionVersion = "1.5.14" }
 
+    signingConfigs {
+        create("fixed") {
+            storeFile = file("anima-debug.keystore")
+            storePassword = "android"
+            keyAlias = "anima"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug") // sideload-only build
+            signingConfig = signingConfigs.getByName("fixed") // same key every build, so updates install over the old app
         }
     }
     compileOptions {

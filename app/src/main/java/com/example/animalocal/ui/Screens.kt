@@ -216,6 +216,11 @@ fun SettingsScreen(vm: MainViewModel, back: () -> Unit) {
             label = { Text("Backend override (blank = auto; cpu, gpu, diffusion=gpu,te=cpu,vae=cpu)") }, modifier = Modifier.fillMaxWidth(),
         )
 
+        OutlinedTextField(
+            value = s.env, onValueChange = { vm.updateSettings(s.copy(env = it)) },
+            label = { Text("Engine env vars, KEY=VALUE separated by spaces (e.g. GGML_VK_DISABLE_F16=1)") }, modifier = Modifier.fillMaxWidth(),
+        )
+
         Text("LoRA", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 10.dp))
         vm.loras.forEachIndexed { i, l ->
             Card(Modifier.fillMaxWidth()) {

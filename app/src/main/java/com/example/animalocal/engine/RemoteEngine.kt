@@ -33,7 +33,7 @@ class RemoteEngine(private val ctx: Context) : ImageEngine {
             if (a != null) {
                 a.completeExceptionally(
                     if (cancelled) EngineCancelled()
-                    else IllegalStateException("Engine process died (probably out of memory). Try offload mode Staged, a smaller size, or Q4 weights.")
+                    else IllegalStateException("Engine process died (native crash or killed by the system). See EXIT INFO in the log.")
                 )
             }
         }

@@ -18,6 +18,7 @@ data class AppSettings(
     val threads: Int = 2,
     val affinityHex: String = "C0",
     val backend: String = "",
+    val env: String = "",
 ) {
     fun affinityMask(): Int = affinityHex.trim().toIntOrNull(16) ?: 0
 }
@@ -49,6 +50,7 @@ class Prefs(ctx: Context) {
             threads = j.optInt("threads", d.threads),
             affinityHex = j.optString("affinityHex", d.affinityHex),
             backend = j.optString("backend", d.backend),
+            env = j.optString("env", d.env),
         )
     }
 
@@ -57,7 +59,7 @@ class Prefs(ctx: Context) {
             .put("steps", s.steps).put("cfg", s.cfg.toDouble()).put("sampler", s.sampler)
             .put("width", s.width).put("height", s.height).put("seed", s.seed)
             .put("negative", s.negative).put("vaeTiling", s.vaeTiling).put("flashAttn", s.flashAttn)
-            .put("offloadMode", s.offloadMode).put("threads", s.threads).put("affinityHex", s.affinityHex).put("backend", s.backend)
+            .put("offloadMode", s.offloadMode).put("threads", s.threads).put("affinityHex", s.affinityHex).put("backend", s.backend).put("env", s.env)
         sp.edit().putString("settings", j.toString()).apply()
     }
 

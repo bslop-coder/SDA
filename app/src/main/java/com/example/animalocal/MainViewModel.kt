@@ -1,10 +1,13 @@
 package com.example.animalocal
 
+import android.app.ActivityManager
 import android.app.Application
+import android.app.ApplicationExitInfo
 import android.content.ContentValues
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Build
 import android.os.SystemClock
 import android.provider.MediaStore
 import android.provider.OpenableColumns
@@ -30,6 +33,7 @@ import com.example.animalocal.models.ModelStore
 import com.example.animalocal.models.Role
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -86,7 +90,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             steps = if (smoke) 1 else s.steps, cfg = s.cfg,
             seed = if (smoke) 42 else if (s.seed < 0) Random.nextLong(0, 2_000_000_000L) else s.seed,
             vaeTiling = s.vaeTiling, flashAttn = s.flashAttn,
-            threads = s.threads, affinityMask = s.affinityMask(), offloadMode = s.offloadMode, backend = s.backend,
+            threads = s.threads, affinityMask = s.affinityMask(), offloadMode = s.offloadMode, backend = s.backend, env = s.env,
             loras = if (smoke) emptyList()
             else loras.filter { it.enabled && File(it.path).exists() }.map { LoraRef(it.path, it.strength) },
         )
@@ -124,6 +128,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: Exception) {
                 status = "Error: ${e.message}"
                 addLog("ERROR: ${e.message}")
+                if (e.message?.contains("Engine process died") == true) {
+                    delay(1500)
+                    addLog("EXIT INFO: " + lastEngineExit())
+                }
             } finally {
                 busy = false
             }
@@ -131,6 +139,27 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun cancel() { engine.cancel() }
+
+    private fun lastEngineExit(): String {
+        if (Build.VERSION.SDK_INT < 30) return "needs Android 11+"
+        return try {
+            val am = ctx.getSystemService(ActivityManager::class.java)
+            val e = am.getHistoricalProcessExitReasons(ctx.packageName, 0, 10)
+                .firstOrNull { it.processName.endsWith(":engine") }
+                ?: return "no record yet"
+            val why = when (e.reason) {
+                ApplicationExitInfo.REASON_CRASH_NATIVE -> "NATIVE CRASH"
+                ApplicationExitInfo.REASON_LOW_MEMORY -> "KILLED: LOW MEMORY"
+                ApplicationExitInfo.REASON_SIGNALED -> "SIGNALED"
+                ApplicationExitInfo.REASON_CRASH -> "JAVA CRASH"
+                ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE -> "EXCESSIVE RESOURCE USAGE"
+                else -> "reason ${e.reason}"
+            }
+            "$why, status ${e.status}, rss ${e.rss / 1024} MB, pss ${e.pss / 1024} MB, ${e.description}"
+        } catch (x: Exception) {
+            "unavailable: ${x.message}"
+        }
+    }
 
     fun runSmokeTest() = generate(smoke = true)
 

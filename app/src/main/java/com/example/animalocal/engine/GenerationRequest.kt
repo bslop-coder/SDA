@@ -26,6 +26,7 @@ data class GenerationRequest(
     val affinityMask: Int = 0xC0,
     val offloadMode: Int = 1,
     val backend: String = "",
+    val env: String = "",
     val loras: List<LoraRef> = emptyList(),
 ) {
     fun toBundle() = Bundle().apply {
@@ -34,7 +35,7 @@ data class GenerationRequest(
         putInt("w", width); putInt("h", height); putInt("steps", steps)
         putFloat("cfg", cfg); putLong("seed", seed)
         putBoolean("tiling", vaeTiling); putBoolean("fa", flashAttn)
-        putInt("threads", threads); putInt("aff", affinityMask); putInt("offload", offloadMode); putString("backend", backend)
+        putInt("threads", threads); putInt("aff", affinityMask); putInt("offload", offloadMode); putString("backend", backend); putString("env", env)
         putStringArray("lp", loras.map { it.path }.toTypedArray())
         putFloatArray("ls", loras.map { it.strength }.toFloatArray())
     }
@@ -51,7 +52,7 @@ data class GenerationRequest(
                 cfg = b.getFloat("cfg", 1f), seed = b.getLong("seed", 0),
                 vaeTiling = b.getBoolean("tiling", true), flashAttn = b.getBoolean("fa", true),
                 threads = b.getInt("threads", 2), affinityMask = b.getInt("aff", 0),
-                offloadMode = b.getInt("offload", 1), backend = b.getString("backend", ""),
+                offloadMode = b.getInt("offload", 1), backend = b.getString("backend", ""), env = b.getString("env", ""),
                 loras = lp.indices.map { LoraRef(lp[it], ls[it]) },
             )
         }

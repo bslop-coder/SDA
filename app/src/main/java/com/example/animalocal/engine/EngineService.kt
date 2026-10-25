@@ -97,6 +97,16 @@ class EngineService : Service() {
         }
         try {
             send(Proto.LOG, data = msgText("engine: starting (offload mode ${req.offloadMode}, ${req.threads} threads, affinity 0x${req.affinityMask.toString(16)}, backend '${req.backend.ifEmpty { "auto" }}')"))
+            for (tok in req.env.split(Regex("[\\s;]+")).filter { it.contains('=') }) {
+                val k = tok.substringBefore('=')
+                val v = tok.substringAfter('=')
+                try {
+                    android.system.Os.setenv(k, v, true)
+                    send(Proto.LOG, data = msgText("env set: $k=$v"))
+                } catch (e: Exception) {
+                    send(Proto.LOG, data = msgText("env failed: $k (${e.message})"))
+                }
+            }
             val rc = SdNative.generate(
                 req.diffusionPath, req.llmPath, req.vaePath,
                 req.prompt, req.negative, req.sampler,
