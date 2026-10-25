@@ -19,6 +19,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      - name: Disable buffer device address in ggml Vulkan
+        if: matrix.vulkan == 'true'
+        run: |
+          VK=app/src/main/cpp/third_party/stable-diffusion.cpp/ggml/src/ggml-vulkan
+          grep -rn "buffer_device_address = " "$VK" || true
+          sed -i -E 's/(device->buffer_device_address = )[^;]+;/\1false;/' "$VK"/*.cpp
+          echo "--- after patch ---"
+          grep -rn "buffer_device_address = " "$VK" || echo "PATTERN NOT FOUND"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -41,6 +49,17 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
+      - name: Patch ggml-vulkan for Mali (no buffer device address)
+        if: matrix.vulkan == 'true'
+        shell: bash
+        run: |
+          cd app/src/main/cpp/third_party/stable-diffusion.cpp/ggml/src/ggml-vulkan
+          echo "--- before ---"
+          grep -n "buffer_device_address" *.cpp *.h | head -30 || true
+          sed -i -E 's/(buffer_device_address[[:space:]]*=[[:space:]]*)[^;=]+;/\1false;/' *.cpp *.h
+          echo "--- after ---"
+          grep -n "buffer_device_address" *.cpp *.h | head -30 || true
+          grep -qE 'buffer_device_address[[:space:]]*=[[:space:]]*false;' *.cpp *.h || { echo "PATCH DID NOT APPLY"; exit 1; }
       - name: Build
         shell: bash
         run: |
@@ -50,6 +69,7 @@ jobs:
         if: failure()
         shell: bash
         run: |
+          [ -f build.log ] || { echo "no build.log: open the failed step above"; exit 0; }
           grep -n -E "FAILED:|error:|CMake Error|fatal error|What went wrong" build.log | head -40 || true
           echo "----- last 40 lines -----"
           tail -n 40 build.log
