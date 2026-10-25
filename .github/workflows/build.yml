@@ -42,7 +42,7 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          SPIRV_DIR=$(find "$RUNNER_TEMP/spirv" -name SPIRV-HeadersConfig.cmake -printf '%h' 2>/dev/null | head -n1)
+          SPIRV_DIR=$(find "$RUNNER_TEMP/spirv" -name SPIRV-HeadersConfig.cmake -printf '%h' 2>/dev/null | head -n1 || true)
           gradle :app:assembleRelease -PanimaVulkan=${{ matrix.vulkan }} -PvkHeaders="$RUNNER_TEMP/vkh" -PspirvPrefix="$RUNNER_TEMP/spirv" -PspirvDir="$SPIRV_DIR" 2>&1 | tee build.log
       - name: Error summary
         if: failure()
