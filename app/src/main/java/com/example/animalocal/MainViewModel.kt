@@ -25,6 +25,7 @@ import com.example.animalocal.engine.EngineCancelled
 import com.example.animalocal.engine.EngineEvent
 import com.example.animalocal.engine.GenerationRequest
 import com.example.animalocal.engine.ImageEngine
+import com.example.animalocal.engine.Tombstone
 import com.example.animalocal.engine.LoraRef
 import com.example.animalocal.engine.RemoteEngine
 import com.example.animalocal.models.Downloader
@@ -155,7 +156,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE -> "EXCESSIVE RESOURCE USAGE"
                 else -> "reason ${e.reason}"
             }
-            "$why, status ${e.status}, rss ${e.rss / 1024} MB, pss ${e.pss / 1024} MB, ${e.description}"
+            val trace = try {
+                e.traceInputStream?.use { it.readBytes() }?.let { Tombstone.summarize(it) } ?: "no crash report attached"
+            } catch (x: Exception) {
+                "crash report unavailable: ${x.message}"
+            }
+            "$why, status ${e.status}, rss ${e.rss / 1024} MB, pss ${e.pss / 1024} MB, ${e.description}\n$trace"
         } catch (x: Exception) {
             "unavailable: ${x.message}"
         }

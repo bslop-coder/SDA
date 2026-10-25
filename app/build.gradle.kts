@@ -23,8 +23,8 @@ android {
         ndk { abiFilters += "arm64-v8a" }
         externalNativeBuild {
             cmake {
-                cFlags += "-w"
-                cppFlags += listOf("-std=c++17", "-w")
+                cFlags += listOf("-w", "-g0")
+                cppFlags += listOf("-std=c++17", "-w", "-g0")
                 arguments += listOf(
                     "-DANDROID_STL=c++_shared",
                     "-DCMAKE_BUILD_TYPE=Release",
@@ -51,6 +51,10 @@ android {
         buildConfig = true
     }
     composeOptions { kotlinCompilerExtensionVersion = "1.5.14" }
+
+    packaging {
+        jniLibs { keepDebugSymbols += "**/*.so" }
+    }
 
     signingConfigs {
         create("fixed") {
