@@ -23,7 +23,8 @@ android {
         ndk { abiFilters += "arm64-v8a" }
         externalNativeBuild {
             cmake {
-                cppFlags += "-std=c++17"
+                cFlags += "-w"
+                cppFlags += listOf("-std=c++17", "-w")
                 arguments += listOf(
                     "-DANDROID_STL=c++_shared",
                     "-DCMAKE_BUILD_TYPE=Release",
