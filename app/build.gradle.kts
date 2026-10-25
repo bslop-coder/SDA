@@ -5,6 +5,8 @@ plugins {
 
 val vulkan = (project.findProperty("animaVulkan") as String?) == "true"
 val vkHeaders = (project.findProperty("vkHeaders") as String?) ?: ""
+val spirvPrefix = (project.findProperty("spirvPrefix") as String?) ?: ""
+val spirvDir = (project.findProperty("spirvDir") as String?) ?: ""
 
 android {
     namespace = "com.example.animalocal"
@@ -28,6 +30,9 @@ android {
                     "-DANIMA_VULKAN=${if (vulkan) "ON" else "OFF"}",
                     "-DVK_HEADERS_DIR=$vkHeaders",
                 )
+                if (vulkan && spirvDir.isNotEmpty()) {
+                    arguments += listOf("-DCMAKE_PREFIX_PATH=$spirvPrefix", "-DSPIRV-Headers_DIR=$spirvDir")
+                }
             }
         }
         buildConfigField("boolean", "VULKAN", vulkan.toString())

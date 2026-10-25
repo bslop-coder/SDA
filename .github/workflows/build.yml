@@ -30,12 +30,19 @@ jobs:
           "$SDKM" "platforms;android-34" "ndk;27.0.12077973" "cmake;3.22.1"
       - name: Vulkan headers
         if: matrix.vulkan == 'true'
-        run: git clone --depth 1 --branch v1.3.296 https://github.com/KhronosGroup/Vulkan-Headers.git "$RUNNER_TEMP/vkh"
+        run: |
+          git clone --depth 1 --branch v1.4.309 https://github.com/KhronosGroup/Vulkan-Headers.git "$RUNNER_TEMP/vkh"
+          git clone --depth 1 --branch vulkan-sdk-1.4.309.0 https://github.com/KhronosGroup/SPIRV-Headers.git "$RUNNER_TEMP/spirv-src"
+          cmake -S "$RUNNER_TEMP/spirv-src" -B "$RUNNER_TEMP/spirv-build" -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/spirv"
+          cmake --install "$RUNNER_TEMP/spirv-build"
+          find "$RUNNER_TEMP/spirv" -name SPIRV-HeadersConfig.cmake
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
       - name: Build
-        run: gradle :app:assembleRelease -PanimaVulkan=${{ matrix.vulkan }} -PvkHeaders="$RUNNER_TEMP/vkh"
+        run: |
+          SPIRV_DIR=$(find "$RUNNER_TEMP/spirv" -name SPIRV-HeadersConfig.cmake -printf '%h' 2>/dev/null | head -n1)
+          gradle :app:assembleRelease -PanimaVulkan=${{ matrix.vulkan }} -PvkHeaders="$RUNNER_TEMP/vkh" -PspirvPrefix="$RUNNER_TEMP/spirv" -PspirvDir="$SPIRV_DIR"
       - name: Rename
         run: mv app/build/outputs/apk/release/app-release.apk anima-${{ matrix.name }}.apk
       - uses: actions/upload-artifact@v4
