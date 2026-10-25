@@ -36,6 +36,8 @@ jobs:
           cmake -S "$RUNNER_TEMP/spirv-src" -B "$RUNNER_TEMP/spirv-build" -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/spirv"
           cmake --install "$RUNNER_TEMP/spirv-build"
           find "$RUNNER_TEMP/spirv" -name SPIRV-HeadersConfig.cmake
+          cp -r "$RUNNER_TEMP/spirv-src/include/spirv" "$RUNNER_TEMP/vkh/include/"
+          test -f "$RUNNER_TEMP/vkh/include/spirv/unified1/spirv.hpp"
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
